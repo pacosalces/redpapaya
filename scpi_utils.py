@@ -7,15 +7,20 @@
 # https://redpitaya.readthedocs.io/en/latest/appsFeatures/remoteControl/remoteControl.html
 
 import os
+import subprocess
 import time
 
 
 class SCPIServer:
 
-    """ """
+    """A 100% insecure SCPI server. Do not deploy in unknown networks"""
 
     def __init__(self, **kwargs):
-        print("Henlo, I minimalz")
+        try:
+            subprocess.check_call("systemctl status redpitaya_scpi", shell=True)
+        except subprocess.CalledProcessError as e:
+            print(e)
+            subprocess.call("systemctl start redpitaya_scpi", shell=True)
 
 
 if __name__ == "__main__":
