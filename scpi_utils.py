@@ -1,15 +1,13 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 #
 # __author__ = [pacosalces,]
 # "I'm not a wrapper"
 #
-# Red Pitaya SCPI server utils following:
+# A very minimal red pitaya SCPI server utils following:
 # https://redpitaya.readthedocs.io/en/latest/appsFeatures/remoteControl/remoteControl.html
 
 import os
 import time
-import sh
-from rich.progress import track
 
 
 class SCPIServer:
@@ -17,7 +15,7 @@ class SCPIServer:
     """ """
 
     def __init__(self, **kwargs):
-        print(sh.ls("./"))
+        print("Henlo, I minimalz")
 
 
 if __name__ == "__main__":
