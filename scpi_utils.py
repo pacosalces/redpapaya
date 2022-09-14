@@ -24,15 +24,14 @@ class scpi(object):
         # Add subprocess call to start scpi.service if not yet started
         try:
             subprocess.check_call(
-                "systemctl status redpitaya_scpi",
+                "systemctl start redpitaya_scpi",
                 shell=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
         except subprocess.CalledProcessError as e:
-            print(e)
-            subprocess.call(
-                "systemctl start redpitaya_scpi",
+            subprocess.check_call(
+                "systemctl restart redpitaya_scpi",
                 shell=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -68,12 +67,6 @@ class scpi(object):
     def close(self):
         """Close IP connection."""
         self.__del__()
-        subprocess.call(
-            "systemctl stop redpitaya_scpi",
-            shell=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
 
     def rx_txt(self, chunksize=4096):
         """Receive text string and return it after removing the delimiter."""
