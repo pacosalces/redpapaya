@@ -1,21 +1,26 @@
 #! /usr/bin/python3
 #
-# __author__ = [pacosalces,]
-# "I'm not a wrapper"
+"""SCPI access to Red Pitaya."""
 #
-# A very minimal red pitaya SCPI server utils following:
-# https://redpitaya.readthedocs.io/en/latest/appsFeatures/remoteControl/remoteControl.html
+# __author__ = "Luka Golinar, Iztok Jeras"
+# __copyright__ = "Copyright 2015, Red Pitaya
+#
+# Modified 09/14/2022 from:
+# https://github.com/RedPitaya/RedPitaya/blob/master/Examples/python/redpitaya_scpi.py
+# by [pacosalces,]
 
-import os
+import socket
 import subprocess
-import time
 
 
-class SCPIServer:
+class scpi(object):
+    """SCPI class used to access Red Pitaya over an IP network."""
 
-    """Likely insecure SCPI server. Do not deploy in untrusted networks"""
+    delimiter = "\r\n"
 
-    def __init__(self, **kwargs):
+    def __init__(self, host, timeout=None, port=5000):
+
+        # Add subprocess call to start scpi.service if not yet started
         try:
             subprocess.check_call(
                 "systemctl status redpitaya_scpi",
@@ -32,7 +37,36 @@ class SCPIServer:
                 stderr=subprocess.DEVNULL,
             )
 
-    def stop(self):
+        """Initialize object and open IP connection.
+        Host IP should be a string in parentheses, like '192.168.1.100'.
+        """
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+
+        try:
+            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            if timeout is not None:
+                self._socket.settimeout(timeout)
+
+            self._socket.connect((host, port))
+
+        except socket.error as e:
+            print(
+                "SCPI >> connect({!s:s}:{:d}) failed: {!s:s}".format(
+                    host, port, e
+                )
+            )
+
+    def __del__(self):
+        if self._socket is not None:
+            self._socket.close()
+        self._socket = None
+
+    def close(self):
+        """Close IP connection."""
+        self.__del__()
         subprocess.call(
             "systemctl stop redpitaya_scpi",
             shell=True,
@@ -40,7 +74,104 @@ class SCPIServer:
             stderr=subprocess.DEVNULL,
         )
 
+    def rx_txt(self, chunksize=4096):
+        """Receive text string and return it after removing the delimiter."""
+        msg = ""
+        while 1:
+            chunk = self._socket.recv(chunksize).decode(
+                "utf-8"
+            )  # Receive chunk size of 2^n preferably
+            msg += chunk
+            if len(msg) and msg[-2:] == self.delimiter:
+                break
+        return msg[:-2]
 
-if __name__ == "__main__":
-    server = SCPIServer()
-    server.stop()
+    def rx_arb(self):
+        numOfBytes = 0
+        """ Recieve binary data from scpi server"""
+        str = b""
+        while len(str) != 1:
+            str = self._socket.recv(1)
+        if not (str == b"#"):
+            return False
+        str = b""
+        while len(str) != 1:
+            str = self._socket.recv(1)
+        numOfNumBytes = int(str)
+        if not (numOfNumBytes > 0):
+            return False
+        str = b""
+        while len(str) != numOfNumBytes:
+            str += self._socket.recv(1)
+        numOfBytes = int(str)
+        str = b""
+        while len(str) != numOfBytes:
+            str += self._socket.recv(4096)
+        return str
+
+    def tx_txt(self, msg):
+        """Send text string ending and append delimiter."""
+        return self._socket.sendall(
+            (msg + self.delimiter).encode("utf-8")
+        )  # was send(().encode('utf-8'))
+
+    def txrx_txt(self, msg):
+        """Send/receive text string."""
+        self.tx_txt(msg)
+        return self.rx_txt()
+
+    # IEEE Mandated Commands
+
+    def cls(self):
+        """Clear Status Command"""
+        return self.tx_txt("*CLS")
+
+    def ese(self, value: int):
+        """Standard Event Status Enable Command"""
+        return self.tx_txt("*ESE {}".format(value))
+
+    def ese_q(self):
+        """Standard Event Status Enable Query"""
+        return self.txrx_txt("*ESE?")
+
+    def esr_q(self):
+        """Standard Event Status Register Query"""
+        return self.txrx_txt("*ESR?")
+
+    def idn_q(self):
+        """Identification Query"""
+        return self.txrx_txt("*IDN?")
+
+    def opc(self):
+        """Operation Complete Command"""
+        return self.tx_txt("*OPC")
+
+    def opc_q(self):
+        """Operation Complete Query"""
+        return self.txrx_txt("*OPC?")
+
+    def rst(self):
+        """Reset Command"""
+        return self.tx_txt("*RST")
+
+    def sre(self):
+        """Service Request Enable Command"""
+        return self.tx_txt("*SRE")
+
+    def sre_q(self):
+        """Service Request Enable Query"""
+        return self.txrx_txt("*SRE?")
+
+    def stb_q(self):
+        """Read Status Byte Query"""
+        return self.txrx_txt("*STB?")
+
+    # :SYSTem
+
+    def err_c(self):
+        """Error count."""
+        return rp.txrx_txt("SYST:ERR:COUN?")
+
+    def err_c(self):
+        """Error next."""
+        return rp.txrx_txt("SYST:ERR:NEXT?")
