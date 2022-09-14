@@ -9,6 +9,7 @@
 # https://github.com/RedPitaya/RedPitaya/blob/master/Examples/python/redpitaya_scpi.py
 # by [pacosalces,]
 
+import time
 import socket
 import subprocess
 
@@ -175,3 +176,12 @@ class scpi(object):
     def err_c(self):
         """Error next."""
         return rp.txrx_txt("SYST:ERR:NEXT?")
+
+
+if __name__ == "__main__":
+    test = scpi(host="127.0.0.1")
+    test.tx_txt("GEN:RST")
+    test.tx_txt("DIG:PIN LED6,1")
+    time.sleep(2)
+    test.tx_txt("DIG:PIN LED6,0")
+    test.close()
