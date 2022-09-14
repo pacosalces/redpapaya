@@ -13,15 +13,34 @@ import time
 
 class SCPIServer:
 
-    """A 100% insecure SCPI server. Do not deploy in unknown networks"""
+    """Likely insecure SCPI server. Do not deploy in untrusted networks"""
 
     def __init__(self, **kwargs):
         try:
-            subprocess.check_call("systemctl status redpitaya_scpi", shell=True)
+            subprocess.check_call(
+                "systemctl status redpitaya_scpi",
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         except subprocess.CalledProcessError as e:
             print(e)
-            subprocess.call("systemctl start redpitaya_scpi", shell=True)
+            subprocess.call(
+                "systemctl start redpitaya_scpi",
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+    def stop(self):
+        subprocess.call(
+            "systemctl stop redpitaya_scpi",
+            shell=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
 
 if __name__ == "__main__":
     server = SCPIServer()
+    server.stop()
